@@ -33,18 +33,17 @@
         <tbody></tbody>
       </table>
       
-      <button id="downloadExcelBtn" class="btn primary">📥 Download Excel</button>
-      
       <div class="divider"></div>
       
-      <h4>Connect to Existing Excel</h4>
-      <p class="hint">Load an existing Excel file to append new data</p>
-      <input type="file" id="excelFileInput" accept=".xlsx,.xls" class="file-input">
-      <label for="excelFileInput" class="btn secondary file-label">📁 Load Excel File</label>
-      <span id="loadedFileName" class="loaded-file"></span>
+      <h4>Update Excel File</h4>
+      <p class="hint">Enter your Excel file URL to update it directly</p>
+      <div class="input-group">
+        <label for="excelUrl">Excel File URL:</label>
+        <input type="text" id="excelUrl" placeholder="https://docs.google.com/spreadsheets/...">
+      </div>
       
-      <button id="appendToExcelBtn" class="btn secondary" style="margin-top: 10px; width: 100%;" disabled>
-        ➕ Append & Download Excel
+      <button id="updateExcelBtn" class="btn secondary" disabled>
+        ⬆️ Update Excel
       </button>
       
       <div class="divider"></div>
