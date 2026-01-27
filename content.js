@@ -31,4 +31,3 @@ function extractProfilesFromPage(companyName) {
   return profiles;
 }
 
-console.log('LinkedIn Extractor content script loaded');

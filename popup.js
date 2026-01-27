@@ -108,12 +108,12 @@ async function startExtraction() {
       await chrome.tabs.update(tab.id, { url: overlayUrl });
       
       // Wait for the page to load, then extract data
-      showStatus('Waiting for page to load...', 'info');
+      showStatus('Waiting for page to load (5 seconds)...', 'info');
       
-      // Give the page time to load
+      // Give the page more time to load
       setTimeout(async () => {
         await extractDataFromCurrentPage(tab.id, companyName);
-      }, 3000);
+      }, 5000);
     }
     
   } catch (error) {
@@ -125,14 +125,25 @@ async function startExtraction() {
 // Extract data from the current page
 async function extractDataFromCurrentPage(tabId, companyName) {
   try {
+    showStatus('Extracting profiles...', 'info');
+    
     const results = await chrome.scripting.executeScript({
       target: { tabId: tabId },
       func: extractProfileData,
       args: [companyName]
     });
     
+    console.log('Extraction results:', results);
+    
     if (results && results[0] && results[0].result) {
-      const profiles = results[0].result;
+      const response = results[0].result;
+      
+      // Check if there was a debug message
+      if (response.debug) {
+        console.log('Debug info:', response.debug);
+      }
+      
+      const profiles = response.profiles || [];
       
       if (profiles.length > 0) {
         // Add only new profiles (avoid duplicates)
@@ -150,14 +161,16 @@ async function extractDataFromCurrentPage(tabId, companyName) {
           showStatus(`Found ${newProfiles.length} matching profiles!`, 'success');
         }
       } else {
-        showStatus(`No profiles found matching "${companyName}"`, 'info');
+        // Show debug info if no profiles found
+        const debugMsg = response.debug || 'No debug info';
+        showStatus(`No profiles matching "${companyName}". Found ${response.totalCards || 0} cards. ${debugMsg}`, 'info');
       }
     } else {
-      showStatus('No data extracted. Try scrolling down the overlay first.', 'info');
+      showStatus('No data returned. Try scrolling down the overlay first and click Start again.', 'error');
     }
   } catch (err) {
-    showStatus('Error extracting data. Make sure the overlay is fully loaded.', 'error');
-    console.error(err);
+    showStatus('Error: ' + err.message + '. Make sure the overlay is fully loaded.', 'error');
+    console.error('Extraction error:', err);
   }
 }
 
@@ -167,25 +180,11 @@ function extractUsername(url) {
 }
 
 // This function runs in the context of the LinkedIn page
-// FIXED: Properly extracts unique names without duplication
 function extractProfileData(companyName) {
   const profiles = [];
   const companyLower = companyName.toLowerCase();
   const seenNames = new Set();
-  
-  // Helper function to get only direct text content (not nested elements)
-  function getDirectTextContent(element) {
-    let text = '';
-    for (const node of element.childNodes) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        text += node.textContent;
-      }
-    }
-    if (!text.trim() && element.childNodes.length === 1) {
-      text = element.textContent;
-    }
-    return text.trim();
-  }
+  let debugInfo = [];
   
   // Helper function to clean up names - FIXES DUPLICATE NAME BUG
   function cleanName(name) {
@@ -193,31 +192,27 @@ function extractProfileData(companyName) {
     
     // Remove connection degree indicators
     name = name.replace(/[•·]\s*(1st|2nd|3rd|\d+th)/gi, '');
-    
-    // Remove "View profile" type text
     name = name.replace(/view\s+profile/gi, '');
-    name = name.replace(/Message/gi, '');
-    name = name.replace(/Connect/gi, '');
-    
-    // Remove extra whitespace
+    name = name.replace(/\bMessage\b/gi, '');
+    name = name.replace(/\bConnect\b/gi, '');
     name = name.replace(/\s+/g, ' ').trim();
     
     // FIX: Check for duplicated names (e.g., "Aniket SharmaAniket Sharma")
-    // Method 1: Check if string is exactly doubled
-    if (name.length >= 4) {
-      const halfLen = Math.floor(name.length / 2);
-      for (let i = halfLen - 2; i <= halfLen + 2; i++) {
-        if (i > 0 && i < name.length) {
-          const firstPart = name.substring(0, i).trim();
-          const secondPart = name.substring(i).trim();
-          if (firstPart.toLowerCase() === secondPart.toLowerCase() && firstPart.length > 2) {
-            return firstPart;
+    if (name.length >= 6) {
+      // Try splitting at different positions around the middle
+      const len = name.length;
+      for (let i = Math.floor(len / 2) - 3; i <= Math.ceil(len / 2) + 3; i++) {
+        if (i > 2 && i < len - 2) {
+          const first = name.substring(0, i).trim();
+          const second = name.substring(i).trim();
+          if (first.toLowerCase() === second.toLowerCase() && first.length > 2) {
+            return first;
           }
         }
       }
     }
     
-    // Method 2: Check word-by-word for patterns like "John Doe John Doe"
+    // Check word-by-word for patterns like "John Doe John Doe"
     const words = name.split(/\s+/);
     if (words.length >= 4 && words.length % 2 === 0) {
       const half = words.length / 2;
@@ -228,48 +223,72 @@ function extractProfileData(companyName) {
       }
     }
     
-    // Method 3: Use regex to find repeated patterns
-    const repeatMatch = name.match(/^(.{2,})(\s*)\1$/i);
-    if (repeatMatch) {
-      return repeatMatch[1].trim();
-    }
-    
     return name;
   }
   
-  // Find all profile cards in the recommendations overlay
-  const selectors = [
-    '.artdeco-modal__content li',
-    '[data-test-modal] li',
-    '.browsemap-recommendations li',
-    '.artdeco-list__item',
-    '.pvs-list__item--line-separated',
-    '.scaffold-finite-scroll__content li',
-    '.entity-result',
-    '[data-view-name="profile-component-entity"]'
-  ];
-  
+  // Try multiple strategies to find profile cards
   let profileCards = [];
   
-  for (const selector of selectors) {
-    const elements = document.querySelectorAll(selector);
-    if (elements.length > 0) {
-      profileCards = elements;
+  // Strategy 1: Look for the modal/overlay content
+  const modalSelectors = [
+    '.artdeco-modal__content',
+    '[role="dialog"]',
+    '.scaffold-finite-scroll__content',
+    '.browsemap-recommendations',
+    '[data-test-modal]'
+  ];
+  
+  let container = null;
+  for (const selector of modalSelectors) {
+    container = document.querySelector(selector);
+    if (container) {
+      debugInfo.push(`Found container: ${selector}`);
       break;
     }
   }
   
-  // Fallback: look for any element containing profile info
-  if (profileCards.length === 0) {
-    const modal = document.querySelector('.artdeco-modal__content') || 
-                  document.querySelector('[role="dialog"]') ||
-                  document.querySelector('.scaffold-finite-scroll');
-    if (modal) {
-      profileCards = modal.querySelectorAll('li, .entity-result');
+  // Strategy 2: Find list items within the container or globally
+  const listSelectors = [
+    'li.artdeco-list__item',
+    'li[class*="artdeco"]',
+    '.entity-result',
+    'li.reusable-search__result-container',
+    '.pvs-list__item--line-separated',
+    'ul > li'
+  ];
+  
+  for (const selector of listSelectors) {
+    const elements = container 
+      ? container.querySelectorAll(selector)
+      : document.querySelectorAll(selector);
+    
+    if (elements.length > 0) {
+      profileCards = Array.from(elements);
+      debugInfo.push(`Found ${elements.length} cards with: ${selector}`);
+      break;
     }
   }
   
-  profileCards.forEach((card) => {
+  // Strategy 3: Fallback - find all li elements in modal
+  if (profileCards.length === 0 && container) {
+    profileCards = Array.from(container.querySelectorAll('li'));
+    debugInfo.push(`Fallback: Found ${profileCards.length} li elements in container`);
+  }
+  
+  // Strategy 4: Last resort - search entire page for profile-like elements
+  if (profileCards.length === 0) {
+    const allLis = document.querySelectorAll('li');
+    profileCards = Array.from(allLis).filter(li => {
+      const text = li.textContent.toLowerCase();
+      return text.includes(companyLower) || text.includes('connect') || text.includes('message');
+    });
+    debugInfo.push(`Last resort: Found ${profileCards.length} li elements containing keywords`);
+  }
+  
+  debugInfo.push(`Total cards to process: ${profileCards.length}`);
+  
+  // Process each card
+  profileCards.forEach((card, index) => {
     const text = card.textContent || '';
     const textLower = text.toLowerCase();
     
@@ -277,43 +296,67 @@ function extractProfileData(companyName) {
     if (textLower.includes(companyLower)) {
       let name = '';
       
-      // Try multiple selectors to find the name - prioritize aria-hidden spans
-      const nameSelectors = [
-        'span.artdeco-entity-lockup__title span[aria-hidden="true"]',
-        '.artdeco-entity-lockup__title span[aria-hidden="true"]',
-        '.entity-result__title-text span[aria-hidden="true"]',
-        'a[href*="/in/"] span[aria-hidden="true"]',
-        '.app-aware-link span[aria-hidden="true"]',
-        'span[dir="ltr"] > span[aria-hidden="true"]'
-      ];
-      
-      for (const selector of nameSelectors) {
-        const el = card.querySelector(selector);
-        if (el) {
-          name = getDirectTextContent(el) || el.textContent.trim();
-          if (name && name.length > 1 && name.length < 50) break;
+      // Multiple strategies to extract the name
+      // Strategy A: aria-hidden spans (LinkedIn uses these for visible text)
+      const ariaHiddenSpans = card.querySelectorAll('span[aria-hidden="true"]');
+      for (const span of ariaHiddenSpans) {
+        const spanText = span.textContent.trim();
+        // Name is usually short and doesn't contain certain keywords
+        if (spanText.length > 1 && 
+            spanText.length < 40 && 
+            !spanText.toLowerCase().includes(companyLower) &&
+            !spanText.includes('•') &&
+            !spanText.match(/^\d/) &&
+            !spanText.toLowerCase().includes('connect') &&
+            !spanText.toLowerCase().includes('message') &&
+            !spanText.toLowerCase().includes('software') &&
+            !spanText.toLowerCase().includes('engineer')) {
+          name = spanText;
+          break;
         }
       }
       
-      // Fallback: try to get name from link title or aria-label
-      if (!name || name.length < 2) {
-        const link = card.querySelector('a[href*="/in/"]');
-        if (link) {
-          name = link.getAttribute('aria-label') || link.getAttribute('title') || '';
-          
-          // Clean aria-label (might be "View Aniket Sharma's profile")
-          name = name.replace(/^View\s+/i, '').replace(/'s\s+profile$/i, '').trim();
+      // Strategy B: Link with /in/ href
+      if (!name) {
+        const profileLink = card.querySelector('a[href*="/in/"]');
+        if (profileLink) {
+          // Try aria-label first
+          const ariaLabel = profileLink.getAttribute('aria-label');
+          if (ariaLabel) {
+            name = ariaLabel.replace(/^View\s+/i, '').replace(/'s\s+profile$/i, '').trim();
+          }
+          // Try first span inside link
+          if (!name) {
+            const linkSpan = profileLink.querySelector('span');
+            if (linkSpan) {
+              name = linkSpan.textContent.trim();
+            }
+          }
         }
       }
       
-      // Clean up name - THIS FIXES THE DUPLICATE BUG
+      // Strategy C: First meaningful text in the card
+      if (!name) {
+        const allSpans = card.querySelectorAll('span');
+        for (const span of allSpans) {
+          const spanText = span.textContent.trim();
+          if (spanText.length > 2 && 
+              spanText.length < 40 && 
+              !spanText.includes('•') &&
+              spanText.match(/^[A-Z]/)) { // Starts with capital letter
+            name = spanText;
+            break;
+          }
+        }
+      }
+      
+      // Clean the name
       name = cleanName(name);
       
-      // Validate and add to profiles
+      // Validate and add
       if (name && name.length > 1 && name.length < 50 && !seenNames.has(name.toLowerCase())) {
         seenNames.add(name.toLowerCase());
         
-        // Create Google search URL
         const searchQuery = encodeURIComponent(`site:linkedin.com/in/ "${name}" "${companyName}"`);
         const searchUrl = `https://www.google.com/search?q=${searchQuery}`;
         
@@ -322,11 +365,17 @@ function extractProfileData(companyName) {
           company: companyName,
           searchUrl: searchUrl
         });
+        
+        debugInfo.push(`✓ Extracted: "${name}"`);
       }
     }
   });
   
-  return profiles;
+  return {
+    profiles: profiles,
+    totalCards: profileCards.length,
+    debug: debugInfo.join(' | ')
+  };
 }
 
 function displayResults() {
@@ -357,14 +406,13 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Download as Excel (.xlsx) - ONLY EXCEL, NO CSV
+// Download as Excel (.xlsx)
 function downloadExcel() {
   if (extractedData.length === 0) {
     showStatus('No data to download', 'error');
     return;
   }
   
-  // Prepare data for Excel
   const excelData = extractedData.map((profile, index) => ({
     '#': index + 1,
     'Name': profile.name,
@@ -372,21 +420,18 @@ function downloadExcel() {
     'Search URL': profile.searchUrl
   }));
   
-  // Create workbook and worksheet
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(excelData);
   
-  // Set column widths
   ws['!cols'] = [
-    { wch: 5 },   // #
-    { wch: 30 },  // Name
-    { wch: 25 },  // Company
-    { wch: 70 }   // Search URL
+    { wch: 5 },
+    { wch: 30 },
+    { wch: 25 },
+    { wch: 70 }
   ];
   
   XLSX.utils.book_append_sheet(wb, ws, 'LinkedIn Profiles');
   
-  // Generate and download
   const fileName = `linkedin_profiles_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(wb, fileName);
   
@@ -405,15 +450,12 @@ function handleExcelUpload(event) {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
       
-      // Get first sheet
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       
-      // Convert to JSON
       loadedExcelData = XLSX.utils.sheet_to_json(worksheet);
       loadedFileName = file.name;
       
-      // Update UI
       document.getElementById('loadedFileName').textContent = `✓ Loaded: ${file.name} (${loadedExcelData.length} rows)`;
       document.getElementById('appendToExcelBtn').disabled = false;
       
@@ -434,12 +476,10 @@ function appendToExcel() {
     return;
   }
   
-  // Combine loaded data with new data
   const existingNames = new Set(loadedExcelData.map(row => 
     (row.Name || row.name || '').toLowerCase()
   ));
   
-  // Filter out duplicates
   const newRecords = extractedData.filter(profile => 
     !existingNames.has(profile.name.toLowerCase())
   );
@@ -449,14 +489,12 @@ function appendToExcel() {
     return;
   }
   
-  // Get the highest index from existing data
   let maxIndex = 0;
   loadedExcelData.forEach(row => {
     const idx = parseInt(row['#'] || row.index || 0);
     if (idx > maxIndex) maxIndex = idx;
   });
   
-  // Prepare new records with proper indexing
   const newExcelRecords = newRecords.map((profile, i) => ({
     '#': maxIndex + i + 1,
     'Name': profile.name,
@@ -464,24 +502,20 @@ function appendToExcel() {
     'Search URL': profile.searchUrl
   }));
   
-  // Combine all data
   const allData = [...loadedExcelData, ...newExcelRecords];
   
-  // Create new workbook
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(allData);
   
-  // Set column widths
   ws['!cols'] = [
-    { wch: 5 },   // #
-    { wch: 30 },  // Name
-    { wch: 25 },  // Company
-    { wch: 70 }   // Search URL
+    { wch: 5 },
+    { wch: 30 },
+    { wch: 25 },
+    { wch: 70 }
   ];
   
   XLSX.utils.book_append_sheet(wb, ws, 'LinkedIn Profiles');
   
-  // Generate filename based on original
   const baseName = loadedFileName.replace(/\.[^/.]+$/, '');
   const newFileName = `${baseName}_updated.xlsx`;
   
@@ -503,7 +537,6 @@ function clearResults() {
   document.getElementById('profileCount').textContent = '0';
   hideStatus();
   
-  // Re-check current tab
   checkCurrentTab();
 }
 
