@@ -1,27 +1,39 @@
-
+// Store extracted data
 let extractedData = [];
 let currentTabUrl = '';
 let excelUrl = '';
+let savedCompanyName = '';
 
 document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.getElementById('startBtn');
   const updateExcelBtn = document.getElementById('updateExcelBtn');
+  const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+  const downloadExcelBtn = document.getElementById('downloadExcelBtn');
   const clearBtn = document.getElementById('clearBtn');
   const excelUrlInput = document.getElementById('excelUrl');
- 
+  const editCompanyBtn = document.getElementById('editCompanyBtn');
+  const companyNameInput = document.getElementById('companyName');
+  
+  // Load saved data
   loadSavedData();
   
+  // Check current tab URL on popup open
   checkCurrentTab();
   
   startBtn.addEventListener('click', startExtraction);
   updateExcelBtn.addEventListener('click', updateExcel);
+  downloadCsvBtn.addEventListener('click', downloadCsv);
+  downloadExcelBtn.addEventListener('click', downloadExcel);
   clearBtn.addEventListener('click', clearResults);
-
+  editCompanyBtn.addEventListener('click', editCompanyName);
+  
+  // Save Excel URL as user types
   excelUrlInput.addEventListener('input', (e) => {
     excelUrl = e.target.value.trim();
     saveExcelUrl();
   });
 });
+
 
 async function checkCurrentTab() {
   try {
@@ -36,7 +48,7 @@ async function checkCurrentTab() {
     
     document.getElementById('startBtn').disabled = false;
     
-   
+    // Check if already on overlay page
     if (isOverlayUrl(tab.url)) {
       showStatus('✓ Ready! You are on the recommendations overlay. Enter company name and click Start.', 'success');
     } else {
@@ -47,6 +59,7 @@ async function checkCurrentTab() {
     showStatus('Error checking tab: ' + error.message, 'error');
   }
 }
+
 
 function isOverlayUrl(url) {
   return url.includes('/overlay/browsemap-recommendations');
@@ -62,18 +75,59 @@ function hideStatus() {
   document.getElementById('status').className = 'status';
 }
 
+function editCompanyName() {
+  const companyNameInput = document.getElementById('companyName');
+  const editBtn = document.getElementById('editCompanyBtn');
+  const savedCompanyDisplay = document.getElementById('savedCompanyDisplay');
+  
+  companyNameInput.disabled = false;
+  companyNameInput.focus();
+  editBtn.style.display = 'none';
+  savedCompanyDisplay.style.display = 'none';
+  companyNameInput.parentElement.style.display = 'block';
+  
+  savedCompanyName = '';
+  saveCompanyName();
+}
+
+function lockCompanyName(companyName) {
+  const companyNameInput = document.getElementById('companyName');
+  const editBtn = document.getElementById('editCompanyBtn');
+  const savedCompanyDisplay = document.getElementById('savedCompanyDisplay');
+  
+  savedCompanyName = companyName;
+  saveCompanyName();
+  
+  companyNameInput.disabled = true;
+  companyNameInput.value = companyName;
+  savedCompanyDisplay.textContent = `Using: ${companyName}`;
+  savedCompanyDisplay.style.display = 'block';
+  editBtn.style.display = 'inline-block';
+  companyNameInput.parentElement.style.display = 'none';
+}
+
 async function startExtraction() {
-  const companyName = document.getElementById('companyName').value.trim();
+  let companyName = document.getElementById('companyName').value.trim();
+  
+
+  if (!companyName && savedCompanyName) {
+    companyName = savedCompanyName;
+  }
   
   if (!companyName) {
     showStatus('Please enter a company name', 'error');
     return;
   }
   
+ 
+  if (!savedCompanyName) {
+    lockCompanyName(companyName);
+  }
+  
   showStatus('Getting current tab...', 'info');
   
   try {
-  
+   
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     currentTabUrl = tab.url;
     
@@ -83,7 +137,7 @@ async function startExtraction() {
       return;
     }
     
-
+  
     if (isOverlayUrl(tab.url)) {
       showStatus('Already on recommendations overlay. Extracting data...', 'info');
       await extractDataFromCurrentPage(tab.id, companyName);
@@ -98,16 +152,16 @@ async function startExtraction() {
       
       showStatus(`Navigating to recommendations overlay for ${username}...`, 'info');
       
-   
+
       const overlayUrl = `https://www.linkedin.com/in/${username}/overlay/browsemap-recommendations/`;
       
    
       await chrome.tabs.update(tab.id, { url: overlayUrl });
       
-    
+     
       showStatus('Waiting for page to load (5 seconds)...', 'info');
       
-  
+    
       setTimeout(async () => {
         await extractDataFromCurrentPage(tab.id, companyName);
       }, 5000);
@@ -143,7 +197,7 @@ async function extractDataFromCurrentPage(tabId, companyName) {
       const profiles = response.profiles || [];
       
       if (profiles.length > 0) {
- 
+      
         const existingNames = new Set(extractedData.map(p => p.name.toLowerCase()));
         const newProfiles = profiles.filter(p => !existingNames.has(p.name.toLowerCase()));
         
@@ -158,7 +212,7 @@ async function extractDataFromCurrentPage(tabId, companyName) {
           showStatus(`Found ${newProfiles.length} matching profiles!`, 'success');
         }
       } else {
-        // Show debug info if no profiles found
+      
         const debugMsg = response.debug || 'No debug info';
         showStatus(`No profiles matching "${companyName}". Found ${response.totalCards || 0} cards. ${debugMsg}`, 'info');
       }
@@ -177,23 +231,141 @@ function extractUsername(url) {
 }
 
 
+function generateCompanyVariants(companyName) {
+  const variants = new Set();
+  const original = companyName.trim();
+  
+
+  variants.add(original);
+  variants.add(original.toLowerCase());
+  
+
+  const noPunctuation = original.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+  variants.add(noPunctuation);
+  variants.add(noPunctuation.toLowerCase());
+  
+
+  const noSpaces = original.replace(/\s+/g, '');
+  variants.add(noSpaces);
+  variants.add(noSpaces.toLowerCase());
+  
+
+  const dotToSpace = original.replace(/\./g, ' ');
+  variants.add(dotToSpace);
+  variants.add(dotToSpace.toLowerCase());
+  
+
+  const spaceToDot = original.replace(/\s+/g, '.');
+  variants.add(spaceToDot);
+  variants.add(spaceToDot.toLowerCase());
+
+  const spaceToDash = original.replace(/\s+/g, '-');
+  variants.add(spaceToDash);
+  variants.add(spaceToDash.toLowerCase());
+  
+
+  const dashToSpace = original.replace(/-/g, ' ');
+  variants.add(dashToSpace);
+  variants.add(dashToSpace.toLowerCase());
+  
+
+  const underscoreToSpace = original.replace(/_/g, ' ');
+  variants.add(underscoreToSpace);
+  variants.add(underscoreToSpace.toLowerCase());
+  
+
+  const noSeparators = original.replace(/[\s.\-_]+/g, '');
+  variants.add(noSeparators);
+  variants.add(noSeparators.toLowerCase());
+  
+
+  const cleanest = original.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g, '');
+  variants.add(cleanest);
+  variants.add(cleanest.toLowerCase());
+  
+  return Array.from(variants).filter(v => v.length > 0);
+}
+
+
 function extractProfileData(companyName) {
   const profiles = [];
-  const companyLower = companyName.toLowerCase();
   const seenNames = new Set();
   let debugInfo = [];
   
+
+  function generateCompanyVariants(companyName) {
+    const variants = new Set();
+    const original = companyName.trim();
+    
+    variants.add(original);
+    variants.add(original.toLowerCase());
+    
+    const noPunctuation = original.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+    variants.add(noPunctuation);
+    variants.add(noPunctuation.toLowerCase());
+    
+    const noSpaces = original.replace(/\s+/g, '');
+    variants.add(noSpaces);
+    variants.add(noSpaces.toLowerCase());
+    
+    const dotToSpace = original.replace(/\./g, ' ');
+    variants.add(dotToSpace);
+    variants.add(dotToSpace.toLowerCase());
+    
+    const spaceToDot = original.replace(/\s+/g, '.');
+    variants.add(spaceToDot);
+    variants.add(spaceToDot.toLowerCase());
+    
+    const spaceToDash = original.replace(/\s+/g, '-');
+    variants.add(spaceToDash);
+    variants.add(spaceToDash.toLowerCase());
+    
+    const dashToSpace = original.replace(/-/g, ' ');
+    variants.add(dashToSpace);
+    variants.add(dashToSpace.toLowerCase());
+    
+    const underscoreToSpace = original.replace(/_/g, ' ');
+    variants.add(underscoreToSpace);
+    variants.add(underscoreToSpace.toLowerCase());
+    
+    const noSeparators = original.replace(/[\s.\-_]+/g, '');
+    variants.add(noSeparators);
+    variants.add(noSeparators.toLowerCase());
+    
+    const cleanest = original.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g, '');
+    variants.add(cleanest);
+    variants.add(cleanest.toLowerCase());
+    
+    return Array.from(variants).filter(v => v.length > 0);
+  }
+  
+  const companyVariants = generateCompanyVariants(companyName);
+  debugInfo.push(`Company variants: ${companyVariants.slice(0, 5).join(', ')}...`);
+  
+
+  function matchesCompany(text) {
+    const textLower = text.toLowerCase();
+    const textClean = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g, '').toLowerCase();
+    
+    for (const variant of companyVariants) {
+      const variantLower = variant.toLowerCase();
+      if (textLower.includes(variantLower) || textClean.includes(variantLower.replace(/[\s.\-_]/g, ''))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+ 
   function cleanName(name) {
     if (!name) return '';
     
-   
     name = name.replace(/[•·]\s*(1st|2nd|3rd|\d+th)/gi, '');
     name = name.replace(/view\s+profile/gi, '');
     name = name.replace(/\bMessage\b/gi, '');
     name = name.replace(/\bConnect\b/gi, '');
     name = name.replace(/\s+/g, ' ').trim();
     
-   
     if (name.length >= 6) {
       const len = name.length;
       for (let i = Math.floor(len / 2) - 3; i <= Math.ceil(len / 2) + 3; i++) {
@@ -207,7 +379,6 @@ function extractProfileData(companyName) {
       }
     }
     
- 
     const words = name.split(/\s+/);
     if (words.length >= 4 && words.length % 2 === 0) {
       const half = words.length / 2;
@@ -220,10 +391,10 @@ function extractProfileData(companyName) {
     
     return name;
   }
-
+  
+ 
   let profileCards = [];
   
-
   const modalSelectors = [
     '.artdeco-modal__content',
     '[role="dialog"]',
@@ -241,7 +412,6 @@ function extractProfileData(companyName) {
     }
   }
   
-
   const listSelectors = [
     'li.artdeco-list__item',
     'li[class*="artdeco"]',
@@ -263,7 +433,6 @@ function extractProfileData(companyName) {
     }
   }
   
-
   if (profileCards.length === 0 && container) {
     profileCards = Array.from(container.querySelectorAll('li'));
     debugInfo.push(`Fallback: Found ${profileCards.length} li elements in container`);
@@ -272,35 +441,31 @@ function extractProfileData(companyName) {
   if (profileCards.length === 0) {
     const allLis = document.querySelectorAll('li');
     profileCards = Array.from(allLis).filter(li => {
-      const text = li.textContent.toLowerCase();
-      return text.includes(companyLower) || text.includes('connect') || text.includes('message');
+      return matchesCompany(li.textContent);
     });
-    debugInfo.push(`Last resort: Found ${profileCards.length} li elements containing keywords`);
+    debugInfo.push(`Last resort: Found ${profileCards.length} li elements with company match`);
   }
   
   debugInfo.push(`Total cards to process: ${profileCards.length}`);
- 
+  
   profileCards.forEach((card, index) => {
     const text = card.textContent || '';
     const textLower = text.toLowerCase();
     
-
     const hasConnectButton = card.querySelector('button[aria-label*="Connect"]') || 
                              card.querySelector('button[aria-label*="connect"]') ||
                              (textLower.includes('connect') && !textLower.includes('message'));
     
-    
-    if (textLower.includes(companyLower) && hasConnectButton) {
+   
+    if (matchesCompany(text) && hasConnectButton) {
       let name = '';
       
- 
       const ariaHiddenSpans = card.querySelectorAll('span[aria-hidden="true"]');
       for (const span of ariaHiddenSpans) {
         const spanText = span.textContent.trim();
-      
         if (spanText.length > 1 && 
             spanText.length < 40 && 
-            !spanText.toLowerCase().includes(companyLower) &&
+            !matchesCompany(spanText) &&
             !spanText.includes('•') &&
             !spanText.match(/^\d/) &&
             !spanText.toLowerCase().includes('connect') &&
@@ -312,16 +477,13 @@ function extractProfileData(companyName) {
         }
       }
       
-    
       if (!name) {
         const profileLink = card.querySelector('a[href*="/in/"]');
         if (profileLink) {
-       
           const ariaLabel = profileLink.getAttribute('aria-label');
           if (ariaLabel) {
             name = ariaLabel.replace(/^View\s+/i, '').replace(/'s\s+profile$/i, '').trim();
           }
-      
           if (!name) {
             const linkSpan = profileLink.querySelector('span');
             if (linkSpan) {
@@ -338,17 +500,15 @@ function extractProfileData(companyName) {
           if (spanText.length > 2 && 
               spanText.length < 40 && 
               !spanText.includes('•') &&
-              spanText.match(/^[A-Z]/)) { 
+              spanText.match(/^[A-Z]/)) {
             name = spanText;
             break;
           }
         }
       }
       
-   
       name = cleanName(name);
       
-  
       if (name && name.length > 1 && name.length < 50 && !seenNames.has(name.toLowerCase())) {
         seenNames.add(name.toLowerCase());
         
@@ -393,7 +553,12 @@ function displayResults() {
   });
   
   resultsDiv.classList.remove('hidden');
-
+  
+  // Enable download buttons
+  document.getElementById('downloadCsvBtn').disabled = false;
+  document.getElementById('downloadExcelBtn').disabled = false;
+  
+  // Enable update button if Excel URL is provided
   if (excelUrl) {
     document.getElementById('updateExcelBtn').disabled = false;
   }
@@ -405,38 +570,43 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-
-async function updateExcel() {
-  const url = document.getElementById('excelUrl').value.trim();
-  
-  if (!url) {
-    showStatus('Please enter Excel file URL', 'error');
-    return;
-  }
-  
+// Download as CSV
+function downloadCsv() {
   if (extractedData.length === 0) {
-    showStatus('No data to update', 'error');
+    showStatus('No data to download', 'error');
     return;
   }
   
-  showStatus('Updating Excel file...', 'info');
+  // Create CSV content
+  const headers = ['#', 'Name', 'Company', 'Search URL'];
+  const rows = extractedData.map((profile, index) => [
+    index + 1,
+    `"${profile.name.replace(/"/g, '""')}"`,
+    `"${profile.company.replace(/"/g, '""')}"`,
+    profile.searchUrl
+  ]);
   
-  try {
- 
-    
-    showStatus('⚠️ Direct Excel update requires API integration. Please download and manually upload.', 'error');
-    
-    
-    downloadExcelData();
-    
-  } catch (error) {
-    showStatus('Error updating Excel: ' + error.message, 'error');
-    console.error(error);
-  }
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+  
+  // Create blob and download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `linkedin_profiles_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showStatus('CSV file downloaded successfully!', 'success');
 }
 
-
-function downloadExcelData() {
+// Download as Excel
+function downloadExcel() {
   if (extractedData.length === 0) {
     showStatus('No data to download', 'error');
     return;
@@ -464,32 +634,78 @@ function downloadExcelData() {
   const fileName = `linkedin_profiles_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(wb, fileName);
   
-  showStatus(`Excel file downloaded: ${fileName}`, 'success');
+  showStatus('Excel file downloaded successfully!', 'success');
+}
+
+// Update Excel file directly via URL
+async function updateExcel() {
+  const url = document.getElementById('excelUrl').value.trim();
+  
+  if (!url) {
+    showStatus('Please enter Excel file URL', 'error');
+    return;
+  }
+  
+  if (extractedData.length === 0) {
+    showStatus('No data to update', 'error');
+    return;
+  }
+  
+  showStatus('⚠️ Direct Excel update requires API integration. Downloading file instead...', 'info');
+  
+  // For now, download the file
+  setTimeout(() => {
+    downloadExcel();
+  }, 1000);
 }
 
 function clearResults() {
   extractedData = [];
+  savedCompanyName = '';
   saveData();
+  saveCompanyName();
+  
   document.querySelector('#resultsTable tbody').innerHTML = '';
   document.getElementById('results').classList.add('hidden');
   document.getElementById('profileCount').textContent = '0';
+  document.getElementById('downloadCsvBtn').disabled = true;
+  document.getElementById('downloadExcelBtn').disabled = true;
   document.getElementById('updateExcelBtn').disabled = true;
-  hideStatus();
   
+  // Reset company name input
+  const companyNameInput = document.getElementById('companyName');
+  const editBtn = document.getElementById('editCompanyBtn');
+  const savedCompanyDisplay = document.getElementById('savedCompanyDisplay');
+  
+  companyNameInput.disabled = false;
+  companyNameInput.value = '';
+  editBtn.style.display = 'none';
+  savedCompanyDisplay.style.display = 'none';
+  companyNameInput.parentElement.style.display = 'block';
+  
+  hideStatus();
   checkCurrentTab();
 }
 
 function saveData() {
-  
   chrome.storage.session.set({ extractedProfiles: extractedData });
 }
 
+function saveCompanyName() {
+  chrome.storage.session.set({ savedCompanyName: savedCompanyName });
+}
+
 function loadSavedData() {
-  
-  chrome.storage.session.get(['extractedProfiles'], (result) => {
+  // Load from session storage
+  chrome.storage.session.get(['extractedProfiles', 'savedCompanyName'], (result) => {
     if (result.extractedProfiles && result.extractedProfiles.length > 0) {
       extractedData = result.extractedProfiles;
       displayResults();
+    }
+    
+    if (result.savedCompanyName) {
+      savedCompanyName = result.savedCompanyName;
+      lockCompanyName(savedCompanyName);
     }
   });
   

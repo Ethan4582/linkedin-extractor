@@ -12,8 +12,11 @@
     
     <div class="input-group">
       <label for="companyName">Company Name:</label>
-      <input type="text" id="companyName" placeholder="e.g., Louisa AI">
+      <input type="text" id="companyName" placeholder="e.g., Louisa AI, lusia.ai, lusia-ai">
     </div>
+    
+    <div id="savedCompanyDisplay" class="saved-company" style="display: none;"></div>
+    <button id="editCompanyBtn" class="btn secondary small" style="display: none;">✏️ Edit Company</button>
     
     <button id="startBtn" class="btn primary">Start Extraction</button>
     
@@ -33,9 +36,14 @@
         <tbody></tbody>
       </table>
       
+      <div class="button-group">
+        <button id="downloadCsvBtn" class="btn primary" disabled>📄 Download CSV</button>
+        <button id="downloadExcelBtn" class="btn primary" disabled>📊 Download Excel</button>
+      </div>
+      
       <div class="divider"></div>
       
-      <h4>Update Excel File</h4>
+      <h4>Update Excel File (Optional)</h4>
       <p class="hint">Enter your Excel file URL to update it directly</p>
       <div class="input-group">
         <label for="excelUrl">Excel File URL:</label>
