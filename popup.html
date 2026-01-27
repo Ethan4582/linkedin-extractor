@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h2>LinkedIn Extractor</h2>
+    
+    <div class="input-group">
+      <label for="companyName">Company Name:</label>
+      <input type="text" id="companyName" placeholder="e.g., Louisa AI">
+    </div>
+    
+    <button id="startBtn" class="btn primary">Start Extraction</button>
+    
+    <div id="status" class="status"></div>
+    
+    <div id="results" class="results hidden">
+      <h3>Extracted Profiles</h3>
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Company</th>
+            <th>Search</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="downloadBtn" class="btn secondary">Download CSV</button>
+      <button id="clearBtn" class="btn secondary">Clear Results</button>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
