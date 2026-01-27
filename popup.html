@@ -3,10 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <link rel="stylesheet" href="styles.css">
+  <!-- SheetJS library for Excel support -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <h2>LinkedIn Extractor</h2>
+    <h2>🔗 LinkedIn Extractor</h2>
     
     <div class="input-group">
       <label for="companyName">Company Name:</label>
@@ -18,7 +20,7 @@
     <div id="status" class="status"></div>
     
     <div id="results" class="results hidden">
-      <h3>Extracted Profiles</h3>
+      <h3>Extracted Profiles (<span id="profileCount">0</span>)</h3>
       <table id="resultsTable">
         <thead>
           <tr>
@@ -30,8 +32,24 @@
         </thead>
         <tbody></tbody>
       </table>
-      <button id="downloadBtn" class="btn secondary">Download CSV</button>
-      <button id="clearBtn" class="btn secondary">Clear Results</button>
+      
+      <button id="downloadExcelBtn" class="btn primary">📥 Download Excel</button>
+      
+      <div class="divider"></div>
+      
+      <h4>Connect to Existing Excel</h4>
+      <p class="hint">Load an existing Excel file to append new data</p>
+      <input type="file" id="excelFileInput" accept=".xlsx,.xls" class="file-input">
+      <label for="excelFileInput" class="btn secondary file-label">📁 Load Excel File</label>
+      <span id="loadedFileName" class="loaded-file"></span>
+      
+      <button id="appendToExcelBtn" class="btn secondary" style="margin-top: 10px; width: 100%;" disabled>
+        ➕ Append & Download Excel
+      </button>
+      
+      <div class="divider"></div>
+      
+      <button id="clearBtn" class="btn danger">🗑️ Clear All Results</button>
     </div>
   </div>
   
