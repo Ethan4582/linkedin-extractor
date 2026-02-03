@@ -4,7 +4,7 @@ Because manually copying 50 names and Googling them individually is nobody's ide
 
 # Demo Video
 
-[![Demo Video](image.png)](https://www.youtube.com/watch?v=PQqPkdpA0V0)
+[![Demo Video](image.png)](https://youtu.be/PUBk-eRAeUM)
 
 ## What It Does
 
