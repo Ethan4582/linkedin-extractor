@@ -3,8 +3,8 @@
 Because manually copying 50 names and Googling them individually is nobody's idea of a good time.
 
 # Demo Video
-
-[![Demo Video](icons/image.png)](https://youtu.be/PUBk-eRAeUM)
+[![Demo Video](icons/icon1.png)](https://youtu.be/PUBk-eRAeUM)
+[![](icons/image.png)](https://youtu.be/PUBk-eRAeUM)
 
 ## What It Does
 
