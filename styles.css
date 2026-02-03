@@ -242,3 +242,17 @@ h4 {
   color: #0a66c2;
   font-weight: bold;
 }
+
+
+.support-creator {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 1rem;
+  opacity: 0.85;
+}
+.support-creator a {
+  text-decoration: none;
+  color: #6f4e37;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
