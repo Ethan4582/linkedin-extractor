@@ -46,9 +46,7 @@ This is feature #1. More LinkedIn automation coming soon because repetitive task
 If you find this extension useful, consider supporting us!  
 Your contribution will help us publish this extension on the Chrome Web Store.
 
-[![Buy Me a Coffee](icons/coffee.png)](https://buymeacoffee.com/ashirwad05)
-
-[Buy Me a Coffee](https://buymeacoffee.com/ashirwad05)
+[![Buy Me a Coffee](icons/coffee.png)](https://buymeacoffee.com/ashirwad05) [Buy Me a Coffee](https://buymeacoffee.com/ashirwad05)
 
 **Pro tip:** Use responsibly. LinkedIn's watching, but so is your career growth. 🚀
 
