@@ -295,107 +295,100 @@ function extractProfileData(companyName) {
   function generateCompanyVariants(name) {
     const variants = new Set();
     const original = name.trim();
-    variants.add(original);
     variants.add(original.toLowerCase());
-    variants.add(original.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ''));
     variants.add(original.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').toLowerCase());
-    variants.add(original.replace(/\s+/g, ''));
     variants.add(original.replace(/\s+/g, '').toLowerCase());
     return Array.from(variants).filter(v => v.length > 0);
+  }
+
+  function normalizeText(text) {
+    return text
+      .replace(/Â/g, '')
+      .replace(/[·•]/g, ' ')
+      .replace(/[\u00A0\u2000-\u200F\u2028\u2029]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .trim();
+  }
+
+  function getActionType(rawText) {
+    const trimmed = rawText.replace(/\s+$/, '');
+    const lower = trimmed.toLowerCase();
+    if (lower.endsWith('message')) return 'message';
+    if (lower.endsWith('connect')) return 'connect';
+    if (lower.endsWith('follow')) return 'follow';
+    return 'unknown';
+  }
+
+  function extractName(text) {
+    let cleaned = text
+      .replace(/Â/g, '')
+      .replace(/[\u00A0\u2000-\u200F\u2028\u2029]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    let parts = cleaned.split(/[·•]/);
+    let name = (parts[0] || '').trim();
+    name = name.replace(/(Connect|Follow|Message)$/i, '').trim();
+    name = name.replace(/\d+(st|nd|rd|th)$/i, '').trim();
+    return name;
+  }
+
+  function matchesCompany(text, variants) {
+    const normalized = normalizeText(text);
+    for (const variant of variants) {
+      if (normalized.includes(variant)) return true;
+    }
+    return false;
   }
 
   const companyVariants = generateCompanyVariants(companyName);
   debugInfo.push(`Company variants: ${companyVariants.slice(0, 3).join(', ')}...`);
 
-
   const allProfileLinks = document.querySelectorAll('a[href*="/in/"]');
   debugInfo.push(`Found ${allProfileLinks.length} profile links on page`);
 
   let processedNames = [];
-  
-  allProfileLinks.forEach((aTag, index) => {
-    const href = aTag.href || aTag.getAttribute('href');
-    
 
-    if (!href || !href.includes('/in/') || href.includes('/in/edit') || href.includes('/in/settings')) {
-      return;
-    }
+  allProfileLinks.forEach((aTag) => {
+    const href = aTag.href || aTag.getAttribute('href');
+    if (!href || !href.includes('/in/') || href.includes('/in/edit') || href.includes('/in/settings')) return;
 
     let profileUrl = href;
-    if (!profileUrl.startsWith('http')) {
-      profileUrl = 'https://www.linkedin.com' + href;
-    }
-    
-  
-    if (seenUrls.has(profileUrl)) {
+    if (!profileUrl.startsWith('http')) profileUrl = 'https://www.linkedin.com' + href;
+    if (seenUrls.has(profileUrl)) return;
+
+    const rawText = aTag.textContent || '';
+    const action = getActionType(rawText);
+    const name = extractName(rawText);
+
+    if (!name || name.length < 2 || name.length > 60) return;
+    if (/^(connect|message|follow|view|more|see all|show|hide|settings|chapters|captions|off|on|\d+)$/i.test(name)) return;
+
+    if (action === 'message') {
+      processedNames.push(`${name} | SKIPPED (Message)`);
       return;
     }
 
- 
-    let name = '';
-    
-    const spanInLink = aTag.querySelector('span');
-    if (spanInLink && spanInLink.textContent.trim()) {
-      name = spanInLink.textContent.trim();
-    } else if (aTag.textContent.trim()) {
-      name = aTag.textContent.trim();
-    }
-  
-    name = name.replace(/\s+/g, ' ').trim();
-    name = name.replace(/^(View|Connect with|Message|Follow)\s+/i, '');
-    name = name.replace(/('s profile|profile)$/i, '').trim();
-    
-  
-    if (!name || name.length < 2 || name.length > 100) {
-      return;
-    }
-    if (/^(connect|message|follow|view|more|see all|show|hide|settings|chapters|captions|off|on|\d+)$/i.test(name)) {
+    if (action !== 'connect' && action !== 'follow') {
+      processedNames.push(`${name} | SKIPPED (Unknown action)`);
       return;
     }
 
-  
-    let cardContext = '';
-    let parent = aTag.parentElement;
-    for (let i = 0; i < 8 && parent; i++) {
-      cardContext = parent.textContent || '';
-      
-      if (cardContext.length > 100) break;
-      parent = parent.parentElement;
+    if (!matchesCompany(rawText, companyVariants)) {
+      processedNames.push(`${name} | NO MATCH`);
+      return;
     }
 
-  
-    const contextLower = cardContext.toLowerCase();
-    let companyMatch = false;
-    for (const variant of companyVariants) {
-      if (variant && contextLower.includes(variant.toLowerCase())) {
-        companyMatch = true;
-        break;
-      }
-    }
-
-    processedNames.push(`${name} | ${companyMatch ? 'MATCH' : 'NO MATCH'}`);
-
-    if (companyMatch) {
-      profiles.push({
-        name,
-        company: companyName,
-        profileUrl
-      });
-      seenUrls.add(profileUrl);
-    }
+    processedNames.push(`${name} | MATCH (${action})`);
+    profiles.push({ name, company: companyName, profileUrl });
+    seenUrls.add(profileUrl);
   });
 
   debugInfo.push(`Processed ${processedNames.length} valid profiles`);
-  debugInfo.push('Results: ' + processedNames.slice(0, 10).join(' | '));
-  if (processedNames.length > 10) {
-    debugInfo.push(`... and ${processedNames.length - 10} more`);
-  }
+  debugInfo.push('Results: ' + processedNames.slice(0, 15).join(' | '));
+  if (processedNames.length > 15) debugInfo.push(`... and ${processedNames.length - 15} more`);
 
-  return {
-    profiles: profiles,
-    totalCards: allProfileLinks.length,
-    debug: debugInfo.join(' | ')
-  };
+  return { profiles, totalCards: allProfileLinks.length, debug: debugInfo.join(' | ') };
 }
 
 function displayResults() {
