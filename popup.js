@@ -295,244 +295,100 @@ function extractProfileData(companyName) {
   function generateCompanyVariants(name) {
     const variants = new Set();
     const original = name.trim();
-    variants.add(original);
     variants.add(original.toLowerCase());
-    variants.add(original.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ''));
     variants.add(original.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').toLowerCase());
-    variants.add(original.replace(/\s+/g, ''));
     variants.add(original.replace(/\s+/g, '').toLowerCase());
     return Array.from(variants).filter(v => v.length > 0);
   }
 
-  const companyVariants = generateCompanyVariants(companyName);
-  debugInfo.push(`Company variants: ${companyVariants.slice(0, 5).join(', ')}...`);
+  function normalizeText(text) {
+    return text
+      .replace(/Â/g, '')
+      .replace(/[·•]/g, ' ')
+      .replace(/[\u00A0\u2000-\u200F\u2028\u2029]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .trim();
+  }
 
-  function matchesCompany(text) {
-    if (!text) return false;
-    const textLower = text.toLowerCase();
-    const textClean = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g, '').toLowerCase();
-    
-    for (const variant of companyVariants) {
-      const variantLower = variant.toLowerCase();
-      if (textLower.includes(variantLower) || textClean.includes(variantLower.replace(/[\s.\-_]/g, ''))) {
-        return true;
-      }
+  function getActionType(rawText) {
+    const trimmed = rawText.replace(/\s+$/, '');
+    const lower = trimmed.toLowerCase();
+    if (lower.endsWith('message')) return 'message';
+    if (lower.endsWith('connect')) return 'connect';
+    if (lower.endsWith('follow')) return 'follow';
+    return 'unknown';
+  }
+
+  function extractName(text) {
+    let cleaned = text
+      .replace(/Â/g, '')
+      .replace(/[\u00A0\u2000-\u200F\u2028\u2029]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    let parts = cleaned.split(/[·•]/);
+    let name = (parts[0] || '').trim();
+    name = name.replace(/(Connect|Follow|Message)$/i, '').trim();
+    name = name.replace(/\d+(st|nd|rd|th)$/i, '').trim();
+    return name;
+  }
+
+  function matchesCompany(text, variants) {
+    const normalized = normalizeText(text);
+    for (const variant of variants) {
+      if (normalized.includes(variant)) return true;
     }
     return false;
   }
 
-  function cleanName(name) {
-    if (!name) return '';
-    
-    name = name.replace(/[•·]\s*(1st|2nd|3rd|\d+th)/gi, '');
-    name = name.replace(/view\s+profile/gi, '');
-    name = name.replace(/\bMessage\b/gi, '');
-    name = name.replace(/\bConnect\b/gi, '');
-    name = name.replace(/\bFollow\b/gi, '');
-    name = name.replace(/\bPending\b/gi, '');
-    name = name.replace(/\s+/g, ' ').trim();
-    
-    // Remove duplicated names
-    const words = name.split(/\s+/);
-    if (words.length >= 4 && words.length % 2 === 0) {
-      const half = words.length / 2;
-      const firstHalf = words.slice(0, half).join(' ');
-      const secondHalf = words.slice(half).join(' ');
-      if (firstHalf.toLowerCase() === secondHalf.toLowerCase()) {
-        return firstHalf;
-      }
-    }
-    
-    return name;
-  }
+  const companyVariants = generateCompanyVariants(companyName);
+  debugInfo.push(`Company variants: ${companyVariants.slice(0, 3).join(', ')}...`);
 
-  let profileCards = [];
+  const allProfileLinks = document.querySelectorAll('a[href*="/in/"]');
+  debugInfo.push(`Found ${allProfileLinks.length} profile links on page`);
 
-  // Extended list of container selectors for LinkedIn's various modal/overlay structures
-  const containerSelectors = [
-    '.artdeco-modal__content',
-    '[role="dialog"]',
-    '.scaffold-finite-scroll__content',
-    '.browsemap-recommendations',
-    '[data-test-modal]',
-    '.pv-browsemap-section',
-    '.scaffold-layout__main',
-    'main',
-    '#main'
-  ];
-  
-  let container = null;
-  for (const selector of containerSelectors) {
-    container = document.querySelector(selector);
-    if (container) {
-      debugInfo.push(`Found container: ${selector}`);
-      break;
-    }
-  }
+  let processedNames = [];
 
-  // Extended list of profile card selectors
-  const cardSelectors = [
-    // LinkedIn specific selectors
-    'li.artdeco-list__item',
-    'li[class*="artdeco-list"]',
-    '.entity-result__item',
-    '.entity-result',
-    'li.reusable-search__result-container',
-    '.pvs-list__item--line-separated',
-    '.pv-browsemap-section__member-container',
-    // Generic list items with links
-    'li:has(a[href*="/in/"])',
-    'div[data-view-name="profile-card"]',
-    '[data-chameleon-result-urn]',
-    // Fallback to any li with profile links
-    'ul li'
-  ];
-  
-  // Try to find cards in container first, then fallback to document
-  for (const selector of cardSelectors) {
-    try {
-      const elements = container 
-        ? container.querySelectorAll(selector)
-        : document.querySelectorAll(selector);
-      
-      if (elements.length > 0) {
-        // Filter to only include elements that have a profile link
-        const filtered = Array.from(elements).filter(el => 
-          el.querySelector('a[href*="/in/"]') || el.closest('a[href*="/in/"]')
-        );
-        
-        if (filtered.length > 0) {
-          profileCards = filtered;
-          debugInfo.push(`Found ${filtered.length} cards with: ${selector}`);
-          break;
-        }
-      }
-    } catch (e) {
-      // :has() selector might not be supported in older browsers
-      debugInfo.push(`Selector error: ${selector}`);
-    }
-  }
+  allProfileLinks.forEach((aTag) => {
+    const href = aTag.href || aTag.getAttribute('href');
+    if (!href || !href.includes('/in/') || href.includes('/in/edit') || href.includes('/in/settings')) return;
 
-  // Fallback: Find all elements with profile links
-  if (profileCards.length === 0) {
-    const allProfileLinks = document.querySelectorAll('a[href*="/in/"]');
-    debugInfo.push(`Found ${allProfileLinks.length} profile links on page`);
-    
-    const processedParents = new Set();
-    allProfileLinks.forEach(link => {
-      // Get the parent container (li, div, etc.)
-      let parent = link.closest('li') || link.closest('div[class*="entity"]') || link.parentElement?.parentElement;
-      if (parent && !processedParents.has(parent)) {
-        processedParents.add(parent);
-        profileCards.push(parent);
-      }
-    });
-    debugInfo.push(`Fallback: Found ${profileCards.length} unique parent containers`);
-  }
+    let profileUrl = href;
+    if (!profileUrl.startsWith('http')) profileUrl = 'https://www.linkedin.com' + href;
+    if (seenUrls.has(profileUrl)) return;
 
-  debugInfo.push(`Total cards to process: ${profileCards.length}`);
+    const rawText = aTag.textContent || '';
+    const action = getActionType(rawText);
+    const name = extractName(rawText);
 
-  profileCards.forEach((card, index) => {
-    const text = card.textContent || '';
-    
-    // Check if card matches company (or process all if no specific filter needed for testing)
-    const cardMatchesCompany = matchesCompany(text);
-    
-    if (cardMatchesCompany) {
-      let name = '';
-      
-      // Method 1: Find name from profile link
-      const profileLink = card.querySelector('a[href*="/in/"]');
-      if (profileLink) {
-        // Try aria-label first (often contains the full name)
-        const ariaLabel = profileLink.getAttribute('aria-label');
-        if (ariaLabel && ariaLabel.length > 1 && ariaLabel.length < 60) {
-          name = ariaLabel.replace(/^View\s+/i, '').replace(/['']s\s+profile$/i, '').trim();
-        }
-        
-        // Try span inside the link
-        if (!name) {
-          const spans = profileLink.querySelectorAll('span');
-          for (const span of spans) {
-            const spanText = span.textContent.trim();
-            if (spanText.length > 1 && spanText.length < 50 && 
-                !spanText.toLowerCase().includes('degree') &&
-                !spanText.match(/^\d/)) {
-              name = spanText;
-              break;
-            }
-          }
-        }
-      }
-      
-      // Method 2: Find aria-hidden spans (LinkedIn often puts names here)
-      if (!name) {
-        const ariaHiddenSpans = card.querySelectorAll('span[aria-hidden="true"]');
-        for (const span of ariaHiddenSpans) {
-          const spanText = span.textContent.trim();
-          if (spanText.length > 1 && 
-              spanText.length < 50 && 
-              !matchesCompany(spanText) &&
-              !spanText.includes('•') &&
-              !spanText.match(/^\d/) &&
-              !spanText.toLowerCase().includes('connect') &&
-              !spanText.toLowerCase().includes('message') &&
-              !spanText.toLowerCase().includes('follow')) {
-            name = spanText;
-            break;
-          }
-        }
-      }
+    if (!name || name.length < 2 || name.length > 60) return;
+    if (/^(connect|message|follow|view|more|see all|show|hide|settings|chapters|captions|off|on|\d+)$/i.test(name)) return;
 
-      // Method 3: Look for specific name container classes
-      if (!name) {
-        const nameSelectors = [
-          '.entity-result__title-text',
-          '.actor-name',
-          '[data-anonymize="person-name"]',
-          '.artdeco-entity-lockup__title'
-        ];
-        for (const sel of nameSelectors) {
-          const el = card.querySelector(sel);
-          if (el) {
-            name = el.textContent.trim();
-            break;
-          }
-        }
-      }
-      
-      name = cleanName(name);
-      
-      if (name && name.length > 1 && name.length < 50 && !seenNames.has(name.toLowerCase())) {
-        seenNames.add(name.toLowerCase());
-        
-        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/in/ "${name}" "${companyName}"`)}`;
-        
-        profiles.push({
-          name: name,
-          company: companyName,
-          searchUrl: searchUrl
-        });
-      }
+    if (action === 'message') {
+      processedNames.push(`${name} | SKIPPED (Message)`);
+      return;
     }
 
-    processedNames.push(`${name} | ${companyMatch ? 'MATCH' : 'NO MATCH'}`);
-
-    if (companyMatch) {
-      profiles.push({
-        name,
-        company: companyName,
-        profileUrl
-      });
-      seenUrls.add(profileUrl);
+    if (action !== 'connect' && action !== 'follow') {
+      processedNames.push(`${name} | SKIPPED (Unknown action)`);
+      return;
     }
+
+    if (!matchesCompany(rawText, companyVariants)) {
+      processedNames.push(`${name} | NO MATCH`);
+      return;
+    }
+
+    processedNames.push(`${name} | MATCH (${action})`);
+    profiles.push({ name, company: companyName, profileUrl });
+    seenUrls.add(profileUrl);
   });
 
-  return {
-    profiles: profiles,
-    totalCards: allProfileLinks.length,
-    debug: debugInfo.join(' | ')
-  };
+  debugInfo.push(`Processed ${processedNames.length} valid profiles`);
+  debugInfo.push('Results: ' + processedNames.slice(0, 15).join(' | '));
+  if (processedNames.length > 15) debugInfo.push(`... and ${processedNames.length - 15} more`);
+
+  return { profiles, totalCards: allProfileLinks.length, debug: debugInfo.join(' | ') };
 }
 
 function displayResults() {
