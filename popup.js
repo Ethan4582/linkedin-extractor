@@ -311,15 +311,6 @@ function extractProfileData(companyName) {
       .trim();
   }
 
-  function getActionType(rawText) {
-    const trimmed = rawText.replace(/\s+$/, '');
-    const lower = trimmed.toLowerCase();
-    if (lower.endsWith('message')) return 'message';
-    if (lower.endsWith('connect')) return 'connect';
-    if (lower.endsWith('follow')) return 'follow';
-    return 'unknown';
-  }
-
   function extractName(text) {
     let cleaned = text
       .replace(/Â/g, '')
@@ -358,28 +349,17 @@ function extractProfileData(companyName) {
     if (seenUrls.has(profileUrl)) return;
 
     const rawText = aTag.textContent || '';
-    const action = getActionType(rawText);
     const name = extractName(rawText);
 
     if (!name || name.length < 2 || name.length > 60) return;
     if (/^(connect|message|follow|view|more|see all|show|hide|settings|chapters|captions|off|on|\d+)$/i.test(name)) return;
-
-    if (action === 'message') {
-      processedNames.push(`${name} | SKIPPED (Message)`);
-      return;
-    }
-
-    if (action !== 'connect' && action !== 'follow') {
-      processedNames.push(`${name} | SKIPPED (Unknown action)`);
-      return;
-    }
 
     if (!matchesCompany(rawText, companyVariants)) {
       processedNames.push(`${name} | NO MATCH`);
       return;
     }
 
-    processedNames.push(`${name} | MATCH (${action})`);
+    processedNames.push(`${name} | MATCH`);
     profiles.push({ name, company: companyName, profileUrl });
     seenUrls.add(profileUrl);
   });

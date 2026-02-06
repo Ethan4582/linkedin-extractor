@@ -29,15 +29,6 @@ function extractProfilesFromPage(companyName) {
       .trim();
   }
 
-  function getActionType(rawText) {
-    const trimmed = rawText.replace(/\s+$/, '');
-    const lower = trimmed.toLowerCase();
-    if (lower.endsWith('message')) return 'message';
-    if (lower.endsWith('connect')) return 'connect';
-    if (lower.endsWith('follow')) return 'follow';
-    return 'unknown';
-  }
-
   function extractName(text) {
     let cleaned = text
       .replace(/Â/g, '')
@@ -71,13 +62,10 @@ function extractProfilesFromPage(companyName) {
     if (seenUrls.has(profileUrl)) return;
 
     const rawText = aTag.textContent || '';
-    const action = getActionType(rawText);
     const name = extractName(rawText);
 
     if (!name || name.length < 2 || name.length > 60) return;
     if (/^(connect|message|follow|view|more|see all|show|hide|settings|chapters|captions|off|on|\d+)$/i.test(name)) return;
-    if (action === 'message') return;
-    if (action !== 'connect' && action !== 'follow') return;
     if (!matchesCompany(rawText, companyVariants)) return;
 
     profiles.push({ name, company: companyName, profileUrl });
