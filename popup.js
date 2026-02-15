@@ -311,15 +311,6 @@ function extractProfileData(companyName) {
       .trim();
   }
 
-  function getActionType(rawText) {
-    const trimmed = rawText.replace(/\s+$/, '');
-    const lower = trimmed.toLowerCase();
-    if (lower.endsWith('message')) return 'message';
-    if (lower.endsWith('connect')) return 'connect';
-    if (lower.endsWith('follow')) return 'follow';
-    return 'unknown';
-  }
-
   function extractName(text) {
     let cleaned = text
       .replace(/Â/g, '')
@@ -330,6 +321,18 @@ function extractProfileData(companyName) {
     let name = (parts[0] || '').trim();
     name = name.replace(/(Connect|Follow|Message)$/i, '').trim();
     name = name.replace(/\d+(st|nd|rd|th)$/i, '').trim();
+    
+   
+    const words = name.split(' ');
+    const half = Math.floor(words.length / 2);
+    if (words.length % 2 === 0 && words.length > 2) {
+      const firstHalf = words.slice(0, half).join(' ');
+      const secondHalf = words.slice(half).join(' ');
+      if (firstHalf === secondHalf) {
+        name = firstHalf;
+      }
+    }
+    
     return name;
   }
 
@@ -355,31 +358,22 @@ function extractProfileData(companyName) {
 
     let profileUrl = href;
     if (!profileUrl.startsWith('http')) profileUrl = 'https://www.linkedin.com' + href;
+    
+    profileUrl = profileUrl.split('?')[0];
     if (seenUrls.has(profileUrl)) return;
 
     const rawText = aTag.textContent || '';
-    const action = getActionType(rawText);
     const name = extractName(rawText);
 
     if (!name || name.length < 2 || name.length > 60) return;
     if (/^(connect|message|follow|view|more|see all|show|hide|settings|chapters|captions|off|on|\d+)$/i.test(name)) return;
-
-    if (action === 'message') {
-      processedNames.push(`${name} | SKIPPED (Message)`);
-      return;
-    }
-
-    if (action !== 'connect' && action !== 'follow') {
-      processedNames.push(`${name} | SKIPPED (Unknown action)`);
-      return;
-    }
 
     if (!matchesCompany(rawText, companyVariants)) {
       processedNames.push(`${name} | NO MATCH`);
       return;
     }
 
-    processedNames.push(`${name} | MATCH (${action})`);
+    processedNames.push(`${name} | MATCH`);
     profiles.push({ name, company: companyName, profileUrl });
     seenUrls.add(profileUrl);
   });
