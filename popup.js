@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   checkCurrentTab();
   
   startBtn.addEventListener('click', startExtraction);
-  updateExcelBtn.addEventListener('click', updateExcel);
+  // updateExcelBtn.addEventListener('click', updateExcel);
   downloadCsvBtn.addEventListener('click', downloadCsv);
   downloadExcelBtn.addEventListener('click', downloadExcel);
   clearBtn.addEventListener('click', clearResults);
