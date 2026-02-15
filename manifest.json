@@ -2,14 +2,10 @@
   "manifest_version": 3,
   "name": "LinkedIn Profile Extractor",
   "version": "1.0",
-  "description": "Extract LinkedIn profiles by company name",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "scripting"
-  ],
+  "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
-    "https://www.linkedin.com/*"
+    "https://www.linkedin.com/*",
+    "https://api.notion.com/*"
   ],
   "action": {
     "default_popup": "popup.html",

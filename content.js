@@ -1,4 +1,3 @@
-
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'extractProfiles') {
     const profiles = extractProfilesFromPage(request.companyName);
@@ -30,4 +29,16 @@ function extractProfilesFromPage(companyName) {
   
   return profiles;
 }
+
+// chrome.storage.local.get(['notionApiKey', 'notionDbId'], (result) => {
+//   if (result.notionApiKey) {
+//     notionApiKey = result.notionApiKey;
+//     document.getElementById('notionApiKey').value = notionApiKey;
+//   }
+//   if (result.notionDbId) {
+//     notionDbId = result.notionDbId;
+//     document.getElementById('notionDbId').value = notionDbId;
+//   }
+//   updateNotionBtnState();
+// });
 

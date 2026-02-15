@@ -256,3 +256,18 @@ h4 {
   font-weight: 500;
   transition: opacity 0.2s;
 }
+
+
+#notionStatus {
+  margin-top: 8px;
+  font-size: 12px;
+}
+#notionApiKey, #notionDbId {
+  width: 100%;
+  padding: 6px 8px;
+  margin-top: 4px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  box-sizing: border-box;
+}

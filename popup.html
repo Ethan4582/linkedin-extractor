@@ -42,20 +42,27 @@
       
       <div class="divider"></div>
       
-      <h4>Update Excel File (Optional)</h4>
-      <p class="hint">Enter your Excel file URL to update it directly</p>
-      <div class="input-group">
-        <label for="excelUrl">Excel File URL:</label>
-        <input type="text" id="excelUrl" placeholder="https://docs.google.com/spreadsheets/...">
-      </div>
-      
-      <button id="updateExcelBtn" class="btn secondary" disabled>
-        ⬆️ Update Excel
-      </button>
       
       <div class="divider"></div>
       
       <button id="clearBtn" class="btn danger">🗑️ Clear All Results</button>
+    </div>
+
+    <div class="section">
+      <h3>📝 Notion Integration</h3>
+      <div class="input-group">
+        <label for="notionApiKey">Notion API Key:</label>
+        <input type="password" id="notionApiKey" placeholder="ntn_... or secret_...">
+      </div>
+      <div class="input-group">
+        <label for="notionDbId">Database ID:</label>
+        <input type="text" id="notionDbId" placeholder="Paste your Notion Database ID">
+      </div>
+      <div class="button-group">
+        <button id="saveNotionBtn" class="btn secondary">💾 Save Credentials</button>
+        <button id="sendToNotionBtn" disabled>📤 Send to Notion</button>
+      </div>
+      <div id="notionStatus" class="status"></div>
     </div>
 
     <div class="support-creator">
@@ -64,6 +71,7 @@
       <span style="vertical-align:middle;">Buy Me a Coffee</span>
     </a>
   </div>
+  
   
   </div>
   

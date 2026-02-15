@@ -4,6 +4,10 @@ let currentTabUrl = '';
 let excelUrl = '';
 let savedCompanyName = '';
 
+let notionApiKey = '';
+let notionDbId = '';
+
+
 document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.getElementById('startBtn');
   const updateExcelBtn = document.getElementById('updateExcelBtn');
@@ -13,6 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const excelUrlInput = document.getElementById('excelUrl');
   const editCompanyBtn = document.getElementById('editCompanyBtn');
   const companyNameInput = document.getElementById('companyName');
+  
+  const sendToNotionBtn = document.getElementById('sendToNotionBtn');
+  
+  const saveNotionBtn = document.getElementById('saveNotionBtn');
   
   // Load saved data
   loadSavedData();
@@ -31,6 +39,24 @@ document.addEventListener('DOMContentLoaded', () => {
   excelUrlInput.addEventListener('input', (e) => {
     excelUrl = e.target.value.trim();
     saveExcelUrl();
+  });
+  
+  sendToNotionBtn.addEventListener('click', sendToNotion);
+  
+  saveNotionBtn.addEventListener('click', () => {
+    notionApiKey = document.getElementById('notionApiKey').value.trim();
+    notionDbId = document.getElementById('notionDbId').value.trim();
+    saveNotionSettings();
+    updateNotionBtnState();
+    showNotionStatus('✓ Notion credentials saved!', 'success');
+  });
+  
+  notionApiKeyInput.addEventListener('input', () => {
+    updateNotionBtnState();
+  });
+  
+  notionDbIdInput.addEventListener('input', () => {
+    updateNotionBtnState();
   });
 });
 
@@ -736,14 +762,157 @@ function loadSavedData() {
   });
   
 
-  chrome.storage.local.get(['excelUrl'], (result) => {
+  chrome.storage.local.get(['excelUrl', 'notionApiKey', 'notionDbId'], (result) => {
     if (result.excelUrl) {
       excelUrl = result.excelUrl;
       document.getElementById('excelUrl').value = excelUrl;
     }
+    if (result.notionApiKey) {
+      notionApiKey = result.notionApiKey;
+      document.getElementById('notionApiKey').value = notionApiKey;
+    }
+    if (result.notionDbId) {
+      notionDbId = result.notionDbId;
+      document.getElementById('notionDbId').value = notionDbId;
+    }
+    updateNotionBtnState();
   });
 }
 
 function saveExcelUrl() {
   chrome.storage.local.set({ excelUrl: excelUrl });
+}
+
+function saveNotionSettings() {
+  chrome.storage.local.set({ notionApiKey, notionDbId });
+}
+
+function updateNotionBtnState() {
+  const btn = document.getElementById('sendToNotionBtn');
+  const apiKey = notionApiKey || document.getElementById('notionApiKey').value.trim();
+  const dbId = notionDbId || document.getElementById('notionDbId').value.trim();
+  btn.disabled = !(apiKey && dbId && extractedData.length > 0);
+}
+
+function showNotionStatus(message, type = 'info') {
+  const status = document.getElementById('notionStatus');
+  status.textContent = message;
+  status.className = `status show ${type}`;
+}
+
+async function sendToNotion() {
+  // Use saved credentials, or current input if not saved
+  const apiKey = notionApiKey || document.getElementById('notionApiKey').value.trim();
+  const dbId = notionDbId || document.getElementById('notionDbId').value.trim();
+
+  if (!apiKey || !dbId) {
+    showNotionStatus('Please enter and save Notion API Key and Database ID', 'error');
+    return;
+  }
+  
+  // First, fetch existing entries to avoid duplicates
+  const existingUrls = await fetchExistingNotionUrls();
+
+  for (let i = 0; i < extractedData.length; i++) {
+    const profile = extractedData[i];
+
+    // Skip if already exists in Notion
+    if (existingUrls.has(profile.profileUrl)) {
+      duplicateCount++;
+      continue;
+    }
+
+    try {
+      const response = await fetch('https://api.notion.com/v1/pages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${notionApiKey}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': '2022-06-28'
+        },
+        body: JSON.stringify({
+          parent: { database_id: notionDbId },
+          properties: {
+            'Name': {
+              title: [{ text: { content: profile.name } }]
+            },
+            'Company': {
+              rich_text: [{ text: { content: profile.company } }]
+            },
+            'Profile URL': {
+              url: profile.profileUrl
+            }
+          }
+        })
+      });
+
+      if (response.ok) {
+        successCount++;
+      } else {
+        const err = await response.json();
+        console.error('Notion API error:', err);
+        failCount++;
+      }
+    } catch (error) {
+      console.error('Notion request failed:', error);
+      failCount++;
+    }
+
+    // Update progress
+    showNotionStatus(
+      `Progress: ${i + 1}/${extractedData.length} (${successCount} added, ${duplicateCount} skipped)`,
+      'info'
+    );
+
+    // Rate limiting: Notion allows ~3 requests/sec
+    await new Promise(resolve => setTimeout(resolve, 350));
+  }
+
+  let msg = `Done! ${successCount} profiles added to Notion.`;
+  if (duplicateCount > 0) msg += ` ${duplicateCount} duplicates skipped.`;
+  if (failCount > 0) msg += ` ${failCount} failed.`;
+
+  showNotionStatus(msg, failCount > 0 ? 'error' : 'success');
+  btn.disabled = false;
+}
+
+async function fetchExistingNotionUrls() {
+  const existingUrls = new Set();
+
+  try {
+    let hasMore = true;
+    let startCursor = undefined;
+
+    while (hasMore) {
+      const body = { page_size: 100 };
+      if (startCursor) body.start_cursor = startCursor;
+
+      const response = await fetch(`https://api.notion.com/v1/databases/${notionDbId}/query`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${notionApiKey}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': '2022-06-28'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) break;
+
+      const data = await response.json();
+      for (const page of data.results) {
+        const urlProp = page.properties['Profile URL'];
+        if (urlProp && urlProp.url) {
+          existingUrls.add(urlProp.url);
+        }
+      }
+
+      hasMore = data.has_more;
+      startCursor = data.next_cursor;
+    }
+  } catch (error) {
+    console.error('Error fetching existing Notion entries:', error);
+  }
+
+  return existingUrls;
 }
