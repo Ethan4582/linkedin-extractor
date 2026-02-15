@@ -41,6 +41,15 @@ function extractProfilesFromPage(companyName) {
     name = name.replace(/\d+(st|nd|rd|th)$/i, '').trim();
     
    
+    const len = name.length;
+    if (len % 2 === 0 && len > 0) {
+      const mid = len / 2;
+      if (name.substring(0, mid) === name.substring(mid)) {
+        name = name.substring(0, mid).trim();
+      }
+    }
+    
+   
     const words = name.split(' ');
     const half = Math.floor(words.length / 2);
     if (words.length % 2 === 0 && words.length > 2) {
