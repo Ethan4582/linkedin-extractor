@@ -321,6 +321,18 @@ function extractProfileData(companyName) {
     let name = (parts[0] || '').trim();
     name = name.replace(/(Connect|Follow|Message)$/i, '').trim();
     name = name.replace(/\d+(st|nd|rd|th)$/i, '').trim();
+    
+   
+    const words = name.split(' ');
+    const half = Math.floor(words.length / 2);
+    if (words.length % 2 === 0 && words.length > 2) {
+      const firstHalf = words.slice(0, half).join(' ');
+      const secondHalf = words.slice(half).join(' ');
+      if (firstHalf === secondHalf) {
+        name = firstHalf;
+      }
+    }
+    
     return name;
   }
 
@@ -346,6 +358,8 @@ function extractProfileData(companyName) {
 
     let profileUrl = href;
     if (!profileUrl.startsWith('http')) profileUrl = 'https://www.linkedin.com' + href;
+    
+    profileUrl = profileUrl.split('?')[0];
     if (seenUrls.has(profileUrl)) return;
 
     const rawText = aTag.textContent || '';
