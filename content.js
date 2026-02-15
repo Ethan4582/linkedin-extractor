@@ -40,7 +40,7 @@ function extractProfilesFromPage(companyName) {
     name = name.replace(/(Connect|Follow|Message)$/i, '').trim();
     name = name.replace(/\d+(st|nd|rd|th)$/i, '').trim();
     
-    
+   
     const words = name.split(' ');
     const half = Math.floor(words.length / 2);
     if (words.length % 2 === 0 && words.length > 2) {
