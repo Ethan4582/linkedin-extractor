@@ -74,7 +74,7 @@
           showStatus(`Found ${profiles.length} company colleagues!`, 'success');
         }
       } else {
-        showStatus(`No company colleagues matching "${companyName}" were found.`, 'info');
+        showStatus('No matching profiles found. Try a different company name or check the spelling.', 'info');
       }
     } catch (err) {
       extractCompanyBtn.disabled = false;

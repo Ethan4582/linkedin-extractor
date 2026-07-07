@@ -124,12 +124,16 @@ function hideStatus() {
 function editCompanyName() {
   const companyNameInput = document.getElementById('companyName');
   const editBtn = document.getElementById('editCompanyBtn');
-  const inputGroup = document.getElementById('companyInputGroup');
+  const savedCompanyDisplay = document.getElementById('savedCompanyDisplay');
 
+  if (savedCompanyName) {
+    companyNameInput.value = savedCompanyName;
+  }
   companyNameInput.disabled = false;
-  companyNameInput.focus();
+  companyNameInput.classList.remove('hidden');
+  savedCompanyDisplay.classList.add('hidden');
   editBtn.classList.add('hidden');
-  inputGroup.classList.remove('hidden');
+  companyNameInput.focus();
 
   savedCompanyName = '';
   saveCompanyName();
@@ -139,16 +143,16 @@ function lockCompanyName(companyName) {
   const companyNameInput = document.getElementById('companyName');
   const editBtn = document.getElementById('editCompanyBtn');
   const savedCompanyDisplay = document.getElementById('savedCompanyDisplay');
-  const inputGroup = document.getElementById('companyInputGroup');
 
   savedCompanyName = companyName;
   saveCompanyName();
 
-  companyNameInput.disabled = true;
   companyNameInput.value = companyName;
+  companyNameInput.disabled = true;
+  companyNameInput.classList.add('hidden');
   savedCompanyDisplay.textContent = companyName;
+  savedCompanyDisplay.classList.remove('hidden');
   editBtn.classList.remove('hidden');
-  inputGroup.classList.add('hidden');
 }
 
 async function startExtraction() {
@@ -237,8 +241,7 @@ async function extractDataFromCurrentPage(tabId, companyName) {
           showStatus(`Found ${newProfiles.length} matching profiles!`, 'success');
         }
       } else {
-        const debugMsg = response.debug || 'No debug info';
-        showStatus(`No profiles matching "${companyName}". Found ${response.totalCards || 0} cards. ${debugMsg}`, 'info');
+        showStatus('No matching profiles found. Try a different company name or check the spelling.', 'info');
       }
     } else {
       showStatus('No data returned. Try scrolling down the overlay first and click Start again.', 'error');
@@ -444,7 +447,7 @@ function displayResults(data = extractedData) {
     } else {
       row.innerHTML = `
         <td>${displayIdx + 1}</td>
-        <td><div class="cell-text" title="${escapeHtml(profile.name)}">${escapeHtml(profile.name)}</div></td>
+        <td><a href="${escapeHtml(profile.profileUrl)}" target="_blank" rel="noopener noreferrer" class="profile-link cell-text" title="${escapeHtml(profile.name)}">${escapeHtml(profile.name)}</a></td>
         <td><div class="cell-text" title="${escapeHtml(profile.company)}">${escapeHtml(profile.company)}</div></td>
         <td>
           <div class="action-group">
@@ -635,13 +638,14 @@ function clearResults() {
 
   const companyNameInput = document.getElementById('companyName');
   const editBtn = document.getElementById('editCompanyBtn');
-  const inputGroup = document.getElementById('companyInputGroup');
+  const savedCompanyDisplay = document.getElementById('savedCompanyDisplay');
 
   companyNameInput.disabled = false;
   companyNameInput.value = '';
+  companyNameInput.classList.remove('hidden');
   editBtn.classList.add('hidden');
-  inputGroup.classList.remove('hidden');
-  document.getElementById('savedCompanyDisplay').textContent = 'Not set';
+  savedCompanyDisplay.classList.add('hidden');
+  savedCompanyDisplay.textContent = 'Not set';
 
   hideStatus();
   checkCurrentTab();

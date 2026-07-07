@@ -9,16 +9,7 @@
   <div class="app">
     <header class="app-header">
       <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-          </svg>
-        </div>
-        <div class="brand-text">
-          <div class="brand-title">LinkedIn</div>
-          <div class="brand-subtitle">Extractor</div>
-        </div>
+        <img src="icons/icon16.png" class="brand-logo" alt="Logo">
       </div>
       <a href="https://buymeacoffee.com/ashirwad05" target="_blank" rel="noopener noreferrer" class="support-btn" title="Support the creator">
         <img src="icons/coffee.png" alt="Buy Me a Coffee">
@@ -27,22 +18,17 @@
 
     <div class="company-bar">
       <span class="company-label">Using:</span>
-      <span id="savedCompanyDisplay" class="company-name">Not set</span>
-    </div>
-
-    <div id="companyInputGroup" class="input-group">
-      <label for="companyName">Company Name</label>
-      <input type="text" id="companyName" placeholder="e.g., Louisa AI, lusia.ai, lusia-ai">
-    </div>
-
-    <div class="action-bar">
-      <button id="editCompanyBtn" class="btn btn-secondary hidden">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <span id="savedCompanyDisplay" class="company-name hidden">Not set</span>
+      <input type="text" id="companyName" class="company-name-input" placeholder="Enter company name...">
+      <button id="editCompanyBtn" class="tool-btn inline-edit-btn hidden" title="Edit company name">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
         </svg>
-        Edit Company
       </button>
+    </div>
+
+    <div class="action-bar">
       <button id="startBtn" class="btn btn-primary">
         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"></polygon>

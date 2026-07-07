@@ -55,53 +55,25 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
-.brand-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: var(--accent-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  box-shadow: var(--shadow-crisp);
-}
-
-.brand-icon svg {
+.brand-logo {
   width: 24px;
   height: 24px;
-}
-
-.brand-title {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--text-primary);
-}
-
-.brand-subtitle {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.1;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  border-radius: 6px;
+  box-shadow: var(--shadow-raised);
 }
 
 .support-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: var(--bg-card);
   box-shadow: var(--shadow-raised);
   display: flex;
@@ -115,17 +87,17 @@ body {
 }
 
 .support-btn img {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 
 /* Company bar */
 .company-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 14px;
-  padding: 10px 14px;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 9px 12px;
   border-radius: 10px;
   background: var(--bg-inset);
   box-shadow: var(--shadow-inset);
@@ -134,48 +106,49 @@ body {
 
 .company-label {
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .company-name {
   color: var(--accent-secondary);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Input group */
-.input-group {
-  margin-bottom: 14px;
-}
-
-.input-group label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.input-group input[type="text"] {
-  width: 100%;
-  padding: 12px 14px;
+.company-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
   border: none;
-  border-radius: 10px;
-  background: var(--bg-inset);
-  box-shadow: var(--shadow-inset);
+  border-radius: 6px;
+  background: var(--bg-card);
+  box-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.4) inset;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
-  transition: box-shadow 0.2s ease;
 }
 
-.input-group input[type="text"]::placeholder {
-  color: var(--text-muted);
+.company-name-input:focus {
+  box-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 1.5px rgba(124, 58, 237, 0.25),
+    0 2px 4px rgba(0, 0, 0, 0.4) inset;
 }
 
-.input-group input[type="text"]:focus {
-  box-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.3),
-    0 0 0 2px rgba(124, 58, 237, 0.25),
-    0 2px 6px rgba(0, 0, 0, 0.65) inset;
+.inline-edit-btn {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
 }
+
+.inline-edit-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+
 
 /* Buttons */
 .btn {
@@ -253,10 +226,7 @@ body {
 }
 
 .action-bar {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .action-bar .btn {
@@ -546,6 +516,37 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.profile-link {
+  color: var(--accent-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.15s ease;
+}
+
+.profile-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.profile-link::after {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/><polyline points='15 3 21 3 21 9'/><line x1='10' y1='14' x2='21' y2='3'/></svg>");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.profile-link:hover::after {
+  opacity: 0.9;
 }
 
 .cell-input {
