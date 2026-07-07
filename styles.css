@@ -40,14 +40,13 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 13px;
-  width: 440px;
-  min-height: 320px;
+  width: 420px;
   background: var(--bg-scene);
   color: var(--text-primary);
 }
 
 .app {
-  padding: 18px;
+  padding: 16px;
 }
 
 /* Header */
@@ -104,8 +103,8 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
-  padding: 8px 10px;
+  margin-bottom: 10px;
+  padding: 7px 9px;
   border-radius: 10px;
   background: var(--bg-inset);
   box-shadow: var(--shadow-inset);
@@ -129,11 +128,11 @@ body {
 }
 
 .tag-input {
-  flex: 1;
+  flex: 1.15;
   min-width: 0;
-  padding: 5px 8px;
+  padding: 7px 10px;
   border: none;
-  border-radius: 6px;
+  border-radius: 7px;
   background: var(--bg-card);
   box-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.15),
     0 2px 4px rgba(0, 0, 0, 0.4) inset;
@@ -200,10 +199,12 @@ body {
 /* Inline Start button (sits inside tag-bar) */
 .inline-start-btn {
   width: auto !important;
+  flex: 1;
   flex-shrink: 0;
-  padding: 7px 16px;
+  padding: 8px 14px;
   margin-bottom: 0;
   font-size: 13px;
+  border-radius: 7px;
 }
 
 .inline-start-btn .btn-icon {
@@ -245,16 +246,22 @@ body {
   background: var(--bg-card-light);
 }
 
+.export-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
 
 
 .company-extract-btn {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   background: var(--bg-inset);
   box-shadow: var(--shadow-inset);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   font-size: 12px;
-  padding: 10px 16px;
+  padding: 9px 14px;
 }
 
 .company-extract-btn:hover:not(:disabled) {
@@ -267,10 +274,10 @@ body {
   display: none;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 10px;
-  margin-bottom: 14px;
-  font-size: 13px;
+  margin-bottom: 10px;
+  font-size: 12px;
   line-height: 1.4;
   background: var(--bg-inset);
   box-shadow: var(--shadow-inset);
@@ -676,16 +683,6 @@ body {
   font-size: 9px;
   font-weight: 700;
   margin-right: 2px;
-}
-
-.file-badge.csv {
-  background: #22c55e;
-  color: #052e16;
-}
-
-.file-badge.excel {
-  background: #16a34a;
-  color: #052e16;
 }
 
 /* Utility */

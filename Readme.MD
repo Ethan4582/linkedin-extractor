@@ -13,6 +13,11 @@ Because manually copying 50 names and Googling them individually is nobody's ide
 - **Filters for "Connect" users** only (because "Message" means you're already connected)
 - **Exports to CSV/Excel** like a professional data scientist
 - **Robust matching** handles company name chaos (Google, google, google.com, goo-gle... we got you)
+- **Inline edit & delete** extracted profiles right inside the popup—no confirmation dialogs, just quick fixes
+- **Search & filter** through extracted profiles by name or company
+- **Same-company colleagues** extraction opens LinkedIn's "People you may know → People who work at the same company" section and scrapes only that list
+- **Clickable profile names** in the results open the LinkedIn profile in a new tab
+- **Default overlay scraping** routes to `/overlay/browsemap-recommendations/` for consistent, complete results
 
 
 ## Why Use This?
@@ -30,10 +35,13 @@ LinkedIn Premium wants $40/month to help you network. This extension does it for
 ## How to Use
 
 1. Go to any LinkedIn profile (literally anyone)
-2. Type the company name (Google, lusia.ai, whatever)
-3. Hit **Start Extraction** and let it work
-4. Visit more profiles—it keeps collecting automatically
-5. Download your networking goldmine as CSV or Excel
+2. Type the company name (Google, lusia.ai, whatever) in the **Tag** field
+3. Hit **Start** and let it work — by default it routes to the recommendations overlay and scrapes there for complete results
+4. (Optional) Click **Extract Same-Company Colleagues** to scrape LinkedIn's "People you may know → People who work at the same company" section
+5. Use **search** / **filter** to find profiles, and the **edit** / **delete** icons to clean up the list
+6. Click any **name** to open that LinkedIn profile in a new tab
+7. Visit more profiles—it keeps collecting automatically
+8. Download your networking goldmine as CSV or Excel
 
 ## What's Next?
 
