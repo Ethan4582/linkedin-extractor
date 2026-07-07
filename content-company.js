@@ -29,7 +29,7 @@
         debug.push('Dialog not open; attempting to open via LinkedIn UI');
         const opened = await openPeopleYouMayKnowDialog();
         if (!opened) {
-          throw new Error('Could not open the People you may know dialog. Please open it manually and try again.');
+          throw new Error('Could not open the dialog automatically. Please scroll to the "People you may know" section on the profile and click "Show all", then try again.');
         }
         await randomWait(WAIT_AFTER_CLICK_MIN, WAIT_AFTER_CLICK_MAX);
         dialog = await waitForElement(findActiveDialog, 10000);
@@ -102,39 +102,47 @@
   }
 
   async function openPeopleYouMayKnowDialog() {
-    const heading = findElementByText(/People you may know/i, 'h1, h2, h3, h4, span, div');
-    if (!heading) {
-      const fallbackTrigger = findElementByText(/People you may know/i, 'a, button');
-      if (fallbackTrigger) {
-        fallbackTrigger.click();
-        return true;
-      }
-      return false;
-    }
+    const section = findPeopleYouMayKnowSection();
+    if (!section) return false;
 
-    let container = heading.parentElement;
-    for (let i = 0; i < 6; i++) {
-      if (!container) break;
-      const trigger = container.querySelector('a, button');
-      if (trigger) {
-        const text = (trigger.textContent || '').trim().toLowerCase();
-        const label = (trigger.getAttribute('aria-label') || '').toLowerCase();
-        if (/^(show all|see all|view all)$/.test(text) || /people you may know/.test(label)) {
-          trigger.click();
-          return true;
-        }
-      }
-      container = container.parentElement;
-    }
-
-    const allTriggers = Array.from(document.querySelectorAll('a, button'));
-    const likely = allTriggers.find(el => /show all|see all|view all/i.test(el.textContent || ''));
-    if (likely) {
-      likely.click();
+    const trigger = findScopedTrigger(section);
+    if (trigger) {
+      trigger.click();
       return true;
     }
 
     return false;
+  }
+
+  function findPeopleYouMayKnowSection() {
+    const candidates = document.querySelectorAll('section, div, li');
+    for (const el of candidates) {
+      if (!isVisible(el)) continue;
+      const heading = findHeadingInElement(el);
+      if (heading && /People you may know/i.test(heading.textContent || '')) {
+        return el;
+      }
+    }
+    return null;
+  }
+
+  function findHeadingInElement(el) {
+    return el.querySelector('h1, h2, h3, h4, h5, h6, [class*="title"], [class*="header"]');
+  }
+
+  function findScopedTrigger(section) {
+    const triggers = section.querySelectorAll('a, button');
+    for (const trigger of triggers) {
+      if (!isVisible(trigger)) continue;
+      const text = (trigger.textContent || '').trim().toLowerCase();
+      const label = (trigger.getAttribute('aria-label') || '').toLowerCase();
+      const href = (trigger.getAttribute('href') || '') || '';
+      if (href && href.includes('recent-activity')) continue;
+      if (href && href.includes('/detail/')) continue;
+      if (/^(show all|see all|view all)$/.test(text)) return trigger;
+      if (/people you may know/.test(label)) return trigger;
+    }
+    return null;
   }
 
   function findElementByText(regex, selector) {

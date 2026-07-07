@@ -303,7 +303,7 @@ function generateCompanyVariants(companyName) {
   return Array.from(variants).filter(v => v.length > 0);
 }
 
-function extractProfileData(companyName) {
+async function extractProfileData(companyName) {
   const profiles = [];
   const seenUrls = new Set();
   let debugInfo = [];
@@ -367,8 +367,44 @@ function extractProfileData(companyName) {
     return false;
   }
 
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  function findScrollableContainer() {
+    const candidates = document.querySelectorAll('[style*="overflow"], [class*="scroll"], [class*="list"], [data-scope], [role="dialog"], main, .scaffold-finite-scroll');
+    for (const c of candidates) {
+      if (c.scrollHeight > c.clientHeight && c.clientHeight > 100) return c;
+    }
+    return null;
+  }
+
   const companyVariants = generateCompanyVariants(companyName);
-  debugInfo.push(`Company variants: ${companyVariants.slice(0, 3).join(', ')}...`);
+
+  await waitForOverlayReady(12000);
+
+  let scrollContainer = findScrollableContainer() || document.scrollingElement || document.documentElement;
+  let lastCount = 0;
+  let staleCount = 0;
+  for (let i = 0; i < 30; i++) {
+    const anchors = document.querySelectorAll('a[href*="/in/"]');
+    if (anchors.length === lastCount) {
+      staleCount++;
+      if (staleCount >= 2) break;
+    } else {
+      staleCount = 0;
+    }
+    lastCount = anchors.length;
+
+    scrollContainer.scrollBy({ top: scrollContainer.clientHeight || 600, behavior: 'smooth' });
+    await wait(900);
+
+    const newContainer = findScrollableContainer();
+    if (newContainer) scrollContainer = newContainer;
+  }
+
+  scrollContainer.scrollTop = 0;
+  await wait(300);
 
   const allProfileLinks = document.querySelectorAll('a[href*="/in/"]');
   debugInfo.push(`Found ${allProfileLinks.length} profile links on page`);
@@ -405,6 +441,15 @@ function extractProfileData(companyName) {
   if (processedNames.length > 15) debugInfo.push(`... and ${processedNames.length - 15} more`);
 
   return { profiles, totalCards: allProfileLinks.length, debug: debugInfo.join(' | ') };
+
+  async function waitForOverlayReady(timeout) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      const links = document.querySelectorAll('a[href*="/in/"]');
+      if (links.length > 0) break;
+      await wait(300);
+    }
+  }
 }
 
 function displayResults(data = extractedData) {

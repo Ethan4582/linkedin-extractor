@@ -61,13 +61,21 @@ body {
 .brand {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .brand-logo {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
   box-shadow: var(--shadow-raised);
+}
+
+.brand-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
 }
 
 .support-btn {
@@ -91,33 +99,36 @@ body {
   height: 20px;
 }
 
-/* Company bar */
-.company-bar {
+/* Tag bar */
+.tag-bar {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-  padding: 9px 12px;
+  padding: 8px 10px;
   border-radius: 10px;
   background: var(--bg-inset);
   box-shadow: var(--shadow-inset);
   font-size: 13px;
 }
 
-.company-label {
+.tag-label {
   color: var(--text-secondary);
   flex-shrink: 0;
+  font-size: 12px;
 }
 
-.company-name {
+.tag-name {
   color: var(--accent-secondary);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
-.company-name-input {
+.tag-input {
   flex: 1;
   min-width: 0;
   padding: 5px 8px;
@@ -131,22 +142,17 @@ body {
   outline: none;
 }
 
-.company-name-input:focus {
+.tag-input:focus {
   box-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.2),
     0 0 0 1.5px rgba(124, 58, 237, 0.25),
     0 2px 4px rgba(0, 0, 0, 0.4) inset;
 }
 
-.inline-edit-btn {
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
+.tag-input::placeholder {
+  color: var(--text-muted);
 }
 
-.inline-edit-btn svg {
-  width: 13px;
-  height: 13px;
-}
+
 
 
 
@@ -191,6 +197,20 @@ body {
   transform: scale(0.98);
 }
 
+/* Inline Start button (sits inside tag-bar) */
+.inline-start-btn {
+  width: auto !important;
+  flex-shrink: 0;
+  padding: 7px 16px;
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.inline-start-btn .btn-icon {
+  width: 13px;
+  height: 13px;
+}
+
 .btn-secondary {
   background: var(--bg-card);
   color: var(--text-primary);
@@ -225,13 +245,7 @@ body {
   background: var(--bg-card-light);
 }
 
-.action-bar {
-  margin-bottom: 12px;
-}
 
-.action-bar .btn {
-  margin-bottom: 0;
-}
 
 .company-extract-btn {
   margin-bottom: 14px;
@@ -392,6 +406,18 @@ body {
 .tool-btn svg {
   width: 16px;
   height: 16px;
+}
+
+/* Inline edit button override (smaller inside tag-bar) */
+.inline-edit-btn {
+  width: 26px !important;
+  height: 26px !important;
+  flex-shrink: 0;
+}
+
+.inline-edit-btn svg {
+  width: 13px;
+  height: 13px;
 }
 
 /* Search bar */
