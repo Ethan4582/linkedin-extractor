@@ -24,6 +24,11 @@
       "matches": ["https://www.linkedin.com/in/*"],
       "js": ["content.js"],
       "css": ["content-styles.css"]
+    },
+    {
+      "matches": ["https://www.linkedin.com/in/*"],
+      "js": ["content-company.js"],
+      "run_at": "document_idle"
     }
   ]
 }
