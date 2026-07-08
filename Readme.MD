@@ -1,10 +1,8 @@
 # LinkedIn Extractor
-
-Because manually copying 50 names and Googling them individually is nobody's idea of a good time.
+Need a referal or dont want to pay for Linkindin Premium? Well this is the extension for you, it extracts profiles.
 
 # Demo Video
-[![Demo Video](icons/icon1.png)](https://youtu.be/PUBk-eRAeUM)
-[![](icons/image.png)](https://youtu.be/PUBk-eRAeUM)
+[![Demo Video](icons/image.png)](https://www.loom.com/share/6e8d645b5cb445138fb34095fe64ad5e)
 
 ## What It Does
 
